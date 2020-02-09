@@ -1,0 +1,13 @@
+Package: BreastCancerGRN
+Type: Package
+Title: The gene regulatory network for breast cancer from ductual
+        carcinoma: Integrated regulatory landscape of cancer hallmarks
+Version: 0.99.1
+Date: 2013-10-11
+Author: Frank Emmert-Streib, Ricardo de Matos Simoes, Paul Mullan, Benjamin Haibe-Kains and Matthias Dehmer
+Maintainer: Ricardo de Matos Simoes <ricardo_dematossimoes@dfci.harvard.edu>
+Description: The package contains a preprocessed colon cancer gene expression dataset and a gene regulatory network (GRN) that was inferred with bc3net using a Pearson MI estimator.
+License: GPL-3
+Depends: R (>= 2.10.0), igraph
+Packaged: 2020-02-05 22:39:01 UTC; ricardo
+NeedsCompilation: no

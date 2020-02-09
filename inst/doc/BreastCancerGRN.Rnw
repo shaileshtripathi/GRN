@@ -1,0 +1,406 @@
+%\VignetteIndexEntry{BClymphomaGRN Manual}
+%\VignetteKeywords{ExpressionData}
+%\VignetteDepends{BClymphomaGRN}
+%\VignettePackage{BClymphomaGRN}
+
+
+\documentclass[12pt]{article}
+
+
+
+\author{Emmert-Streib F., de Matos Simoes R., \\ Mullan P., Haibe-Kains B., Dehmer M.}
+\date{\today}
+\title{R data Package: The gene regulatory network for breast cancer: integrated regulatory landscape of cancer hallmarks.}
+
+\usepackage{url}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+
+\newpage
+
+\begin{abstract}
+\noindent In this vignette, we show how to access and perform basic operations on the gene regulatory network and the processed gene expression data contained in the \texttt{BreastCancerGRN} \texttt{R} package. Further we show the preprocessing steps for gene regulatory network inference. The package is a supplementary of \texttt{BreastCancerGRN  The gene regulatory network for breast cancer: Integrated regulatory landscape of cancer hallmarks}. 
+
+\end{abstract}
+
+
+\section{Introduction}
+The package contains a preprocessed were inferred using bc3net. The data of the BreastCancerGRN package is a supplementary of \cite{Emmert-Streib2013}. The BC3Net \cite{deMatosSimoes-2012} algorithm is a bagging approach for C3Net \cite{Altay-2010, Altay-2011}. Briefly, BC3Net consists of 3 major steps. In the first step, a bootstrap ensemble of 100 data sets is generated. For each data set in the ensemble a gene regulatory network is inferred using C3Net. For the network inference, we use a Pearson estimator for mutual information. We apply a multiple testing correction on the inferred edges using Bonferroni. In step two, the resulting ensemble of networks is aggregated into a weighted network, where the weights describe the ensemble consensus rate for an edge. In step three, we apply a binomial test whether or not an edge should be included in the resulting network. We retain only edges for a significance level of $\alpha = 0.05$ that pass a Bonferroni multiple testing correction.
+
+  
+  
+\begin{itemize}
+ \item Gene expression dataset using EntrezID:GeneSymbols identifiers
+
+\begin{verbatim}
+data(data.BC)
+\end{verbatim}
+
+\item bc3net BreastCancer gene regulatory network (igraph object)
+
+\begin{verbatim}
+data(net.BC)
+\end{verbatim}
+
+A detailed description is given below.
+
+\end{itemize}
+
+
+\section{Data}
+
+\subsection{Breast Cancer gene expression dataset from ExpO}
+
+The data set represents a data subset of the ExpO dataset comprising 351 breast cancer tissue samples
+that was procesed available matching to EntrezID|GeneSymbol identifiers (\url{https://www.ncbi.nlm.nih.gov/gene/}).
+  
+  \begin{verbatim}
+  The data matrix format is:
+  str(data.BC)
+  
+   num [1:19738, 1:351] 9.84 6.55 5.87 4.99 4.38 ...
+ - attr(*, "dimnames")=List of 2
+  ..$ : Named chr [1:19738] "DDR1|780" "RFC2|5982" 
+  "HSPA6|3310" "PAX8|7849" ...
+  .. ..- attr(*, "names")= chr [1:19738] "780" "5982" "3310" "7849" ...
+  ..$ : chr [1:351] "GSM38051.CEL" "GSM38054.CEL" 
+  "GSM38057.CEL" "GSM38059.CEL" ...
+  \end{verbatim}
+
+ The raw expression dataset in CEL format is available at the ncbi GEO database with accession GSE2109 (\url{https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE2109}). An example for the retrieval and preprocessing of the gene expression dataset is shown in the last section of this document.
+
+
+\subsection{Gene regulatory network inferred by bc3net}
+
+The GRN object net.BC is an igraph object. \textit{net.BC} is a weighted undirected gene regulatory network inferred from a large-scale gene expression dataset \cite{Emmert-Streib2013}. The network comprises a total of  $180,171$ interactions for $19738$ genes.
+
+\begin{verbatim}
+data(net.BC)
+  
+net.BC
+
+IGRAPH UNW- 19738 180171 -- 
++ attr: name (v/c), weight (e/n)
++ edges (vertex names):
+ [1] PROM2|150696--CDH1|999      PROM2|150696--KRT18|3875    
+ PROM2|150696--EPCAM|4072   
+ [4] PROM2|150696--CDS1|1040     PROM2|150696--SPINT2|10653  
+ PROM2|150696--RAB25|57111  
+ [7] PROM2|150696--SPINT1|6692   PROM2|150696--ABHD11|83451  
+ PROM2|150696--KRT7|3855    
+[10] PROM2|150696--DDR1|780      PROM2|150696--ZEB2|9839     
+PROM2|150696--RASGRP3|25780
+[13] PROM2|150696--LGALS2|3957   PROM2|150696--SYT11|23208   
+PROM2|150696--PKP3|11187   
+[16] PROM2|150696--MAL2|114569   JUP|3728    --RAB25|57111  
+ JUP|3728    --DDR1|780     
+[19] JUP|3728    --PRRG4|79056   JUP|3728    --LYPD3|27076   
+JUP|3728    --RHOD|29984   
+[22] CDH1|999    --EPCAM|4072    CDH1|999    --SPINT2|10653  
+CDH1|999    --ESRP2|80004  
++ ... omitted several edges
+\end{verbatim}
+
+The GRN was inferred using bc3net from the dataset \textit{data(data.BC)}. 
+Note the following operation requires a memory and can run for a couple of hours.
+In case memory and time is limited the network inference can be performed 
+on a subset of the data. For example genes with low variability can be excluded
+from the analysis.
+
+\begin{verbatim}
+# net.BC=bc3net(data.BC, verbatim=TRUE)
+\end{verbatim}
+
+
+
+\section{Basic usage and network operations on the GRN}
+
+\begin{verbatim}
+library(igraph)
+data(net.BC) # igraph bc3net GRN
+
+# node names are defined by entrezID|genesymbol 
+# and unmapped probeset identifiers
+# example first 10 identifiers
+V(net.BC)$name[1:10]
+
+# symmetric adjacency matrix
+mat=as.matrix(get.adjacency(net.BC))
+
+# symmetric weighted matrix
+mat=as.matrix(get.adjacency(net.BC, attr="weight"))
+
+# degree of top 10 hubgenes
+sort(degree(net.BC), decreasing=TRUE)[1:10]
+
+# data.frame of edges and weight vector
+bc3.edges=get.edgelist(net.bc3)
+
+# edge weght of the bc3net GRN
+# ensemble consenus rate (ecr)
+weight=E(net.BC)$weight
+
+# threshold network example for consenus rate >0.1
+net=subgraph.edges(net.BC, eids = which(E(net.BC)$weight>0.1))
+
+# igraph to graphNEL format
+BC.graphNEL=igraph.to.graphNEL(net.BC)
+\end{verbatim}
+
+
+\subsection{Retrieval of expression data from ncbi GEO}
+example1
+
+\subsection{Preprocessing of microarray data}
+example2
+
+\subsection{Retrieval of meta information}
+example3
+
+
+\bibliographystyle{abbrv}
+
+%\bibliography{main}
+
+
+\begin{thebibliography}{1}
+
+
+\bibitem{Altay-2010}
+Altay, G. and Emmert-Streib, F., \newblock Inferring the conservative
+causal core of gene regulatory networks. \newblock BMC Systems Biology 4 132, 2010
+
+\bibitem{Altay-2011}
+Altay, G. and Emmert-Streib, F., \newblock Structural Influence of gene
+networks on their inference: Analysis of C3NET. \newblock Biology Direct 6 31, 2011
+
+
+\bibitem{Basso-2005}
+Basso, K., Margolin, A., Stolovitzky, G., Klein, U., Dalla-Favera, R.,
+and Califano, A. \newblock Reverse engineering of regulatory networks in
+human B cells. \newblock Nat Genet 37 382-90, 2005
+
+\bibitem{Carlson-2013}
+Carlson, M. \newblock org.Hs.eg.db: Genome wide annotation for Human.  \newblock R package version 2.9.0., 2013
+
+\bibitem{deMatosSimoes-2011}
+de Matos Simoes, R., Tripathi, S. and Emmert-Streib F. \newblock Organizational structure and the periphery of the gene regulatory network in B-cell lymphoma \newblock BMC Systems Biology 2012, 6:38, 2011
+
+\bibitem{deMatosSimoes-2012}
+de Matos Simoes and Emmert-Streib F. \newblock Bagging Statistical Network Inference from Large-Scale Gene Expression Data \newblock  PLoS ONE 7(3): e33624
+
+\bibitem{deMatosSimoes-2013}
+de Matos Simoes, R., Dehmer, M. and Emmert-Streib, F. \newblock B-cell lymphoma gene regulatory networks:Biological consistency among inference methods. \newblock Front Genet. 2013 Dec 16;4:281, 2013
+
+\bibitem{Margolin-2006}
+Margolin, A., Nemenman, I., Basso, K., Wiggins, C., Stolovitzky, G., Dalla Favera, R., et al., \newblock ARACNE: an algorithm for the reconstruction of gene regulatory networks in a mammalian cellular context. \newblock  BMC Bioinformatics 7 Suppl 1 S7, 2006
+
+\bibitem{Emmert-Streib-2013}
+The gene regulatory network for breast cancer: integrated regulatory landscape of cancer hallmarks.
+\end{thebibliography}
+
+\end{document}
+
+
+
+
+
+First we will extract some meta informations of the microarray data using the Bioconductor GEOquery package. For this section we require the installation of the \textit{GEOquery} and \textit{hgu95a.db} and \textit{hgu95av2.db} Bioconductor packages.
+
+\begin{verbatim}
+  source("http://www.bioconductor.org/biocLite.R")
+  biocLite("GEOquery")  
+
+  biocLite("hgu95a.db")
+  biocLite("hgu95av2.db")
+
+
+\end{verbatim}
+
+
+\url{ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE2nnn/GSE2350/soft/GSE2350_family.soft.gz}
+
+
+
+\begin{verbatim}
+  library(GEOquery)
+
+  download.file(paste("ftp://ftp.ncbi.nlm.nih.gov/",
+                      "geo/series/GSE2nnn/GSE2350/soft/",
+                      "GSE2350_family.soft.gz",sep=""), 
+                      "GSE2350_family.soft.gz")
+
+  gds <- getGEO(filename='GSE2350_family.soft.gz')
+
+  metas = lapply(1:length(GSMList(gds)),function(x) {   
+   c(Meta(GSMList(gds)[[x]])$geo_accession,
+     Meta(GSMList(gds)[[x]])$platform_id,
+     Meta(GSMList(gds)[[x]])$title,
+     Meta(GSMList(gds)[[x]])$source_name_ch1,
+     Meta(GSMList(gds)[[x]])$description)
+  })
+
+
+  # list object to data matrix
+  metas = do.call('rbind',metas)
+  colnames(metas)=c("geo_accession","platform_id",
+                    "title","source_name_ch1","description")
+
+
+  write.table(metas, "GSE2350-description.txt", 
+                      sep="\t", row.names=FALSE, quote=FALSE)
+
+\end{verbatim}
+
+Note that for our analysis we considered only arrays for which a raw cel file was available.
+
+\url{http://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE2350&format=file}
+
+
+\begin{verbatim}
+   metas=read.csv("GSE2350-description.txt", sep="\t")
+ 
+   dir.create("./CEL")
+   setwd("./CEL")
+   
+   # get cel files
+   download.file( paste("http://www.ncbi.nlm.nih.gov/",
+            "geo/download/?acc=GSE2350&format=file",sep=""),
+            "GSE2350_RAW.tar")
+
+   untar("GSE2350_RAW.tar")
+      
+   library(affy)
+   # we will consider only arrays for which a CEL file is available
+   celfiles=list.celfiles()
+   metas[,1]=paste(metas[,1],".CEL.gz",sep="")
+   metas=metas[metas[,1]%in%celfiles,]   
+   
+   # now we split the sample file names from the 
+   # two expression platforms into a list object
+   platform  = split(metas[,1], metas[,2])
+   
+   library(affy)
+   hgu95av1 = ReadAffy(filenames=platform[[1]], verbose=TRUE)
+   hgu95av2 = ReadAffy(filenames=platform[[2]], verbose=TRUE)
+   
+   # save(hgu95av1, file="hgu95av1.rda")
+   # save(hgu95av2, file="hgu95av2.rda")
+   
+\end{verbatim}
+
+
+
+\section{Gene regulatory network inference}
+
+\subsection{bc3net}
+
+Default Bc3net network inference from an ensemble of 100 bootstrap c3nets.
+
+\begin{verbatim}
+library(BClymphomaGRN)
+library(bc3net)
+
+data(bassoEN)
+net=bc3net(bassoEN, verbose=TRUE)
+\end{verbatim}
+
+
+\section{Gene entrez identifier and gene symbols}
+
+In the following we show examples how to obtain gene symbol and entrez gene identifiers
+and how they are handeled for a bc3net inference. 
+
+
+Annotation from a specific microarray platform
+\begin{verbatim}
+library(annotate)
+library("org.Hs.eg.db")
+
+entrez=getEG(rownames(exp), data="org.Hs.eg.db")
+symbol=getSYMBOL(rownames(exp), data="org.Hs.eg.db")
+
+\end{verbatim}
+
+Annotation from human organism bioconductor package
+
+\begin{verbatim}
+library(annotate)
+library("org.Hs.eg.db")
+
+entrez=getEG(rownames(exp), data="org.Hs.eg.db")
+symbol=getSYMBOL(rownames(exp), data="org.Hs.eg.db")
+
+\end{verbatim}
+
+Gene symbols and Entrez genes will be assigned to NA in case there are probesets matching to multiple genes. The annotation packages in bioconductor can also be used with the select function. Here and example for an microarray platform annotation package.
+
+\begin{verbatim}
+select(hgu133plus2.db, "1553619_a_at", c("SYMBOL","ENTREZID"))
+       PROBEID  SYMBOL ENTREZID
+1 1553619_a_at  TRIM43   129868
+2 1553619_a_at TRIM43B   653192
+\end{verbatim}
+
+Here and example for an organism annotation package.
+
+\begin{verbatim}
+select(hgu133plus2.db, "1553619_a_at", c("SYMBOL","ENTREZID"))
+       PROBEID  SYMBOL ENTREZID
+1 1553619_a_at  TRIM43   129868
+2 1553619_a_at TRIM43B   653192
+\end{verbatim}
+
+
+Another alternative is to use the eutils API from ncbi.
+
+
+
+\begin{verbatim}
+
+library(annotate)
+library("hgu95av2.db")
+
+eset <- rma(merged)
+exp.probesets <- exprs(eset)
+probes <- rownames(exp.probesets)
+
+symbol=getSYMBOL(probes, data="hgu95av2.db")
+entrez=getEG(probes, data="hgu95av2.db")
+
+symbol[is.na(symbol)]=probes[is.na(symbol)]
+entrez[is.na(entrez)]=probes[is.na(entrez)]
+
+exp.mat = data.frame(rownames(exp.probesets), entrez, symbol, exp.probesets)
+
+
+usymbols = as.vector(unique(exp.mat[,3]))
+uentrez =  as.vector(unique(exp.mat[,2]))
+
+
+# compute median expression for 
+# entrez genes with multiple probesets
+# this will take a while
+
+exp.med = lapply(usymbols, function(x) {          
+     o = subset(exp.mat,exp.mat[,3]==x)[,4:ncol(exp.mat)] 
+     apply(o, 2, median)
+})
+
+
+basso.data = t(do.call('cbind', exp.med))
+rownames(basso.data) = paste(uentrez,":",usymbols,sep="")
+
+write.table(data.frame(rownames(dat),dat),
+    file="basso.data.csv", row.names=FALSE, quote=FALSE, sep="\t")
+
+# or:
+save(basso.data, file="basso.data.rda")
+    
+\end{verbatim}
+ 
+
+
